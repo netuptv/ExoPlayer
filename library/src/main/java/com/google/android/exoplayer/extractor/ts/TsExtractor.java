@@ -397,6 +397,14 @@ public final class TsExtractor implements Extractor {
 
   }
 
+  private String getStringLanguage(int languageCode) {
+    char[] data = new char[3];
+    data[0] = (char)(byte)(languageCode >> 16);
+    data[1] = (char)(byte)(languageCode >> 8);
+    data[2] = (char)(byte)languageCode;
+    return new String(data);
+  }
+
   /**
    * Parses PES packet data and extracts samples.
    */
