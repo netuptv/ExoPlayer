@@ -60,8 +60,8 @@ public final class TsExtractor implements Extractor {
   private final boolean idrKeyframesOnly;
   private final ParsableByteArray tsPacketBuffer;
   private final ParsableBitArray tsScratch;
+  /* package */ final SparseBooleanArray streamPids;
   /* package */ final SparseArray<TsPayloadReader> tsPayloadReaders; // Indexed by pid
-  /* package */ final SparseBooleanArray streamTypes;
 
   // Accessed only by the loading thread.
   private ExtractorOutput output;
@@ -80,9 +80,9 @@ public final class TsExtractor implements Extractor {
     this.idrKeyframesOnly = idrKeyframesOnly;
     tsPacketBuffer = new ParsableByteArray(TS_PACKET_SIZE);
     tsScratch = new ParsableBitArray(new byte[3]);
+    streamPids = new SparseBooleanArray();
     tsPayloadReaders = new SparseArray<>();
     tsPayloadReaders.put(TS_PAT_PID, new PatReader());
-    streamTypes = new SparseBooleanArray();
   }
 
   // Extractor implementation.
@@ -306,14 +306,35 @@ public final class TsExtractor implements Extractor {
         int elementaryPid = pmtScratch.readBits(13);
         pmtScratch.skipBits(4); // reserved
         int esInfoLength = pmtScratch.readBits(12); // ES_info_length
-        if (streamType == 0x06) {
+
+        String language = null;
+        if (streamType == TS_STREAM_TYPE_AAC) { //read descriptors
+          int bytesRead = 0;
+          if (esInfoLength > 0) {
+            while (bytesRead < esInfoLength) {
+              int descriptorTag = data.readUnsignedByte();
+              int descriptorLength = data.readUnsignedByte();
+              if (descriptorTag == 0x0a && descriptorLength == 4) { //if ISO_639_language_descriptor
+                char[] symbols = new char[3]; //ISO639_language_code
+                symbols[0] = (char) data.readUnsignedByte();
+                symbols[1] = (char) data.readUnsignedByte();
+                symbols[2] = (char) data.readUnsignedByte();
+                language = new String(symbols);
+                data.skipBytes(1); //Audio_type
+              } else {
+                data.skipBytes(descriptorLength);
+              }
+              bytesRead += 2 + descriptorLength;
+            }
+          }
+        } else if (streamType == 0x06) {
           // Read descriptors in PES packets containing private data.
           streamType = readPrivateDataStreamType(data, esInfoLength);
         } else {
           data.skipBytes(esInfoLength);
         }
         remainingEntriesLength -= esInfoLength + 5;
-        if (streamTypes.get(streamType)) {
+        if (streamPids.get(elementaryPid)) {
           continue;
         }
 
@@ -326,7 +347,8 @@ public final class TsExtractor implements Extractor {
             pesPayloadReader = new MpegAudioReader(output.track(TS_STREAM_TYPE_MPA_LSF));
             break;
           case TS_STREAM_TYPE_AAC:
-            pesPayloadReader = new AdtsReader(output.track(TS_STREAM_TYPE_AAC));
+            pesPayloadReader = new AdtsReader(output.track(elementaryPid));
+            if (language != null) ((AdtsReader)pesPayloadReader).setLanguage(language);
             break;
           case TS_STREAM_TYPE_AC3:
             pesPayloadReader = new Ac3Reader(output.track(TS_STREAM_TYPE_AC3), false);
@@ -351,7 +373,7 @@ public final class TsExtractor implements Extractor {
         }
 
         if (pesPayloadReader != null) {
-          streamTypes.put(streamType, true);
+          streamPids.put(elementaryPid, true);
           tsPayloadReaders.put(elementaryPid, new PesReader(pesPayloadReader));
         }
       }
