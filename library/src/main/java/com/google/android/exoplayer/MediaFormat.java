@@ -124,7 +124,7 @@ public final class MediaFormat {
   /**
    * The language of the track, or null if unknown or not applicable.
    */
-  public String language;
+  public final String language;
 
   /**
    * For samples that contain subsamples, this is an offset that should be added to subsample
