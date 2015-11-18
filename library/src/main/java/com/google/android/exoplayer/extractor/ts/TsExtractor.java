@@ -288,14 +288,38 @@ public final class TsExtractor implements Extractor {
         int elementaryPid = pmtScratch.readBits(13);
         pmtScratch.skipBits(4); // reserved
         int esInfoLength = pmtScratch.readBits(12); // ES_info_length
-        if (streamType == 0x06) {
+
+        String language = null;
+        if (streamType == TS_STREAM_TYPE_AAC) { //read descriptors
+          int bytesRead = 0;
+          if (esInfoLength > 0) {
+            while (bytesRead < esInfoLength) {
+              data.readBytes(pmtScratch, 1);
+              int descriptorTag = pmtScratch.readBits(8); //descriptor tag
+              data.readBytes(pmtScratch, 1);
+              int descriptorLength = pmtScratch.readBits(8); //descriptor length
+              if (descriptorTag == 0x0a && descriptorLength == 4) { //if ISO_639_language_descriptor
+                data.readBytes(pmtScratch, 3);
+                int languageCode = pmtScratch.readBits(24); //ISO639_language_code
+                language = getStringLanguage(languageCode);
+                data.skipBytes(1); //Audio_type
+              } else {
+                data.skipBytes(descriptorLength);
+              }
+              bytesRead += 2 + descriptorLength;
+            }
+          }
+        } else if (streamType == 0x06) {
           // Read descriptors in PES packets containing private data.
           streamType = readPrivateDataStreamType(data, esInfoLength);
         } else {
           data.skipBytes(esInfoLength);
         }
         remainingEntriesLength -= esInfoLength + 5;
-        if (streamTypes.get(streamType)) {
+        /*if (streamTypes.get(streamType)) {
+          continue;
+        }*/
+        if (streamTypes.get(elementaryPid)) {
           continue;
         }
 
@@ -308,7 +332,9 @@ public final class TsExtractor implements Extractor {
             pesPayloadReader = new MpegAudioReader(output.track(TS_STREAM_TYPE_MPA_LSF));
             break;
           case TS_STREAM_TYPE_AAC:
-            pesPayloadReader = new AdtsReader(output.track(TS_STREAM_TYPE_AAC));
+//            pesPayloadReader = new AdtsReader(output.track(TS_STREAM_TYPE_AAC));
+            pesPayloadReader = new AdtsReader(output.track(elementaryPid));
+            if (language != null) ((AdtsReader)pesPayloadReader).setLanguage(language);
             break;
           case TS_STREAM_TYPE_AC3:
             pesPayloadReader = new Ac3Reader(output.track(TS_STREAM_TYPE_AC3), false);
@@ -333,7 +359,8 @@ public final class TsExtractor implements Extractor {
         }
 
         if (pesPayloadReader != null) {
-          streamTypes.put(streamType, true);
+//          streamTypes.put(streamType, true);
+          streamTypes.put(elementaryPid, true);
           tsPayloadReaders.put(elementaryPid, new PesReader(pesPayloadReader));
         }
       }
@@ -373,6 +400,14 @@ public final class TsExtractor implements Extractor {
       return streamType;
     }
 
+  }
+
+  private String getStringLanguage(int languageCode) {
+    char[] data = new char[3];
+    data[0] = (char)(byte)(languageCode >> 16);
+    data[1] = (char)(byte)(languageCode >> 8);
+    data[2] = (char)(byte)languageCode;
+    return new String(data);
   }
 
   /**

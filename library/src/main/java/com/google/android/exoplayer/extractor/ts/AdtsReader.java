@@ -56,6 +56,8 @@ import java.util.Collections;
   // Used when reading the samples.
   private long timeUs;
 
+  private String language;
+
   public AdtsReader(TrackOutput output) {
     super(output);
     adtsScratch = new ParsableBitArray(new byte[HEADER_SIZE + CRC_SIZE]);
@@ -172,7 +174,7 @@ import java.util.Collections;
 
       MediaFormat mediaFormat = MediaFormat.createAudioFormat(null, MimeTypes.AUDIO_AAC,
           MediaFormat.NO_VALUE, MediaFormat.NO_VALUE, C.UNKNOWN_TIME_US, audioParams.second,
-          audioParams.first, Collections.singletonList(audioSpecificConfig), null);
+          audioParams.first, Collections.singletonList(audioSpecificConfig), language);
       // In this class a sample is an access unit, but the MediaFormat sample rate specifies the
       // number of PCM audio samples per second.
       sampleDurationUs = (C.MICROS_PER_SECOND * 1024) / mediaFormat.sampleRate;
@@ -189,4 +191,7 @@ import java.util.Collections;
     }
   }
 
+  public void setLanguage(String language) {
+    this.language = language;
+  }
 }
