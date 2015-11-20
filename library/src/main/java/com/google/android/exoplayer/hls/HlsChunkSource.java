@@ -150,6 +150,9 @@ public class HlsChunkSource {
   private String encryptionIvString;
   private byte[] encryptionIv;
 
+  private long bitrateEstimate;
+  private int nextVariantIndex;
+
   public HlsChunkSource(DataSource dataSource, String playlistUrl, HlsPlaylist playlist,
       BandwidthMeter bandwidthMeter, int[] variantIndices, int adaptiveMode) {
     this(dataSource, playlistUrl, playlist, bandwidthMeter, variantIndices, adaptiveMode,
@@ -261,6 +264,7 @@ public class HlsChunkSource {
       switchingVariantSpliced = false;
     } else {
       nextVariantIndex = getNextVariantIndex(previousTsChunk, playbackPositionUs);
+      this.nextVariantIndex = nextVariantIndex;
       switchingVariantSpliced = previousTsChunk != null
           && !variants[nextVariantIndex].format.equals(previousTsChunk.format)
           && adaptiveMode == ADAPTIVE_MODE_SPLICE;
@@ -461,7 +465,7 @@ public class HlsChunkSource {
 
   private int getNextVariantIndex(TsChunk previousTsChunk, long playbackPositionUs) {
     clearStaleBlacklistedVariants();
-    long bitrateEstimate = bandwidthMeter.getBitrateEstimate();
+    bitrateEstimate = bandwidthMeter.getBitrateEstimate();
     if (variantBlacklistTimes[selectedVariantIndex] != 0) {
       // The current variant has been blacklisted, so we have no choice but to re-evaluate.
       return getVariantIndexForBandwidth(bitrateEstimate);
@@ -675,6 +679,18 @@ public class HlsChunkSource {
     }
     // Should never happen.
     throw new IllegalStateException("Invalid format: " + format);
+  }
+
+  public Variant[] getVariants() {
+    return variants;
+  }
+
+  public int getNextVariantIndex() {
+    return nextVariantIndex;
+  }
+
+  public long getBitrateEstimate() {
+    return bitrateEstimate;
   }
 
   private static class MediaPlaylistChunk extends DataChunk {
