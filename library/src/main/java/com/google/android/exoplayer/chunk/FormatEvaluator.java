@@ -263,22 +263,35 @@ public interface FormatEvaluator {
       evaluation.format = ideal;
     }
 
+    long bitrateEstimate;
+    long selectedIndex;
     /**
      * Compute the ideal format ignoring buffer health.
      */
     private Format determineIdealFormat(Format[] formats, long bitrateEstimate) {
+      this.bitrateEstimate = bitrateEstimate;
+
       long effectiveBitrate = bitrateEstimate == BandwidthMeter.NO_ESTIMATE
           ? maxInitialBitrate : (long) (bitrateEstimate * bandwidthFraction);
       for (int i = 0; i < formats.length; i++) {
         Format format = formats[i];
         if (format.bitrate <= effectiveBitrate) {
+          selectedIndex = i;
           return format;
         }
       }
       // We didn't manage to calculate a suitable format. Return the lowest quality format.
+      selectedIndex = formats.length - 1;
       return formats[formats.length - 1];
     }
 
+    public long getSelectedIndex() {
+      return selectedIndex;
+    }
+
+    public long getBitrateEstimate() {
+      return bitrateEstimate;
+    }
   }
 
 }

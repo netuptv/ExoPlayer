@@ -536,6 +536,8 @@ public class DashChunkSource implements ChunkSource, Output {
 
   // DashTrackSelector.Output implementation.
 
+  Format[] representationFormats;
+
   @Override
   public void adaptiveTrack(MediaPresentationDescription manifest, int periodIndex,
       int adaptationSetIndex, int[] representationIndices) {
@@ -559,6 +561,7 @@ public class DashChunkSource implements ChunkSource, Output {
       representationFormats[i] = format;
     }
     Arrays.sort(representationFormats, new DecreasingBandwidthComparator());
+    this.representationFormats = representationFormats;
     long trackDurationUs = live ? C.UNKNOWN_TIME_US : manifest.duration * 1000;
     String mediaMimeType = getMediaMimeType(maxHeightRepresentationFormat);
     if (mediaMimeType == null) {
@@ -600,6 +603,10 @@ public class DashChunkSource implements ChunkSource, Output {
   // Visible for testing.
   /* package */ TimeRange getAvailableRange() {
     return availableRange;
+  }
+
+  public Format[] getRepresentationFormats() {
+    return representationFormats;
   }
 
   private static MediaPresentationDescription buildManifest(long durationMs,
