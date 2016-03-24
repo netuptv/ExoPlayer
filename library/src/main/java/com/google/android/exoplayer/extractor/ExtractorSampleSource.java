@@ -196,6 +196,8 @@ public final class ExtractorSampleSource implements SampleSource, SampleSourceRe
   private int extractedSampleCount;
   private int extractedSampleCountAtStartOfLoad;
 
+  private boolean invokeRestartFrom;
+
   /**
    * @param uri The {@link Uri} of the media stream.
    * @param dataSource A data source to read the media stream.
@@ -275,6 +277,10 @@ public final class ExtractorSampleSource implements SampleSource, SampleSourceRe
     extractorHolder = new ExtractorHolder(extractors, this);
     sampleQueues = new SparseArray<>();
     pendingResetPositionUs = NO_RESET_PENDING;
+  }
+
+  public void setInvokeRestartFrom(boolean invokeRestartFrom) {
+    this.invokeRestartFrom = invokeRestartFrom;
   }
 
   @Override
@@ -551,6 +557,8 @@ public final class ExtractorSampleSource implements SampleSource, SampleSourceRe
   // Internal stuff.
 
   private void restartFrom(long positionUs) {
+    if (invokeRestartFrom) return;
+
     pendingResetPositionUs = positionUs;
     loadingFinished = false;
     if (loader.isLoading()) {
