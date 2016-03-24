@@ -196,7 +196,7 @@ public final class ExtractorSampleSource implements SampleSource, SampleSourceRe
   private int extractedSampleCount;
   private int extractedSampleCountAtStartOfLoad;
 
-  private boolean invokeRestartFrom;
+  private boolean invokeRestartFrom = true;
 
   /**
    * @param uri The {@link Uri} of the media stream.
@@ -557,7 +557,7 @@ public final class ExtractorSampleSource implements SampleSource, SampleSourceRe
   // Internal stuff.
 
   private void restartFrom(long positionUs) {
-    if (invokeRestartFrom) return;
+    if (!invokeRestartFrom) return;
 
     pendingResetPositionUs = positionUs;
     loadingFinished = false;
