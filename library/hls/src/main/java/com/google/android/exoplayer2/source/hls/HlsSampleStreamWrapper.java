@@ -121,8 +121,10 @@ import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 
   private SampleQueue[] sampleQueues;
   private int[] sampleQueueTrackIds;
+/*
   private Set<Integer> sampleQueueMappingDoneByType;
   private SparseIntArray sampleQueueIndicesByType;
+*/
   private TrackOutput emsgUnwrappingTrackOutput;
   private int primarySampleQueueType;
   private int primarySampleQueueIndex;
@@ -192,8 +194,8 @@ import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
     loader = new Loader("Loader:HlsSampleStreamWrapper");
     nextChunkHolder = new HlsChunkSource.HlsChunkHolder();
     sampleQueueTrackIds = new int[0];
-    sampleQueueMappingDoneByType = new HashSet<>(MAPPABLE_TYPES.size());
-    sampleQueueIndicesByType = new SparseIntArray(MAPPABLE_TYPES.size());
+//    sampleQueueMappingDoneByType = new HashSet<>(MAPPABLE_TYPES.size());
+//    sampleQueueIndicesByType = new SparseIntArray(MAPPABLE_TYPES.size());
     sampleQueues = new SampleQueue[0];
     sampleQueueIsAudioVideoFlags = new boolean[0];
     sampleQueuesEnabledStates = new boolean[0];
@@ -781,9 +783,11 @@ import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
    *     chunks.
    */
   public void init(int chunkUid, boolean shouldSpliceIn, boolean reusingExtractor) {
+/*
     if (!reusingExtractor) {
       sampleQueueMappingDoneByType.clear();
     }
+*/
     this.chunkUid = chunkUid;
     for (SampleQueue sampleQueue : sampleQueues) {
       sampleQueue.sourceId(chunkUid);
@@ -800,10 +804,22 @@ import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
   @Override
   public TrackOutput track(int id, int type) {
     @Nullable TrackOutput trackOutput = null;
-    if (MAPPABLE_TYPES.contains(type)) {
+
+    int trackCount = sampleQueues.length;
+    for (int i = 0; i < trackCount; i++) {
+      if (sampleQueueTrackIds[i] == id) {
+        return sampleQueues[i];
+      }
+    }
+    if (tracksEnded) {
+      Log.w(TAG, "Unmapped track with id " + id + " of type " + type);
+      return new DummyTrackOutput();
+    }
+
+    /*if (MAPPABLE_TYPES.contains(type)) {
       // Track types in MAPPABLE_TYPES are handled manually to ignore IDs.
       trackOutput = getMappedTrackOutput(id, type);
-    } else /* non-mappable type track */ {
+    } else *//* non-mappable type track *//* {
       for (int i = 0; i < sampleQueues.length; i++) {
         if (sampleQueueTrackIds[i] == id) {
           trackOutput = sampleQueues[i];
@@ -819,7 +835,9 @@ import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
         // The relevant SampleQueue hasn't been constructed yet - so construct it.
         trackOutput = createSampleQueue(id, type);
       }
-    }
+    }*/
+
+    trackOutput = createSampleQueue(id, type);
 
     if (type == C.TRACK_TYPE_METADATA) {
       if (emsgUnwrappingTrackOutput == null) {
@@ -846,6 +864,7 @@ import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
    * @return The the mapped {@link TrackOutput}, or null if it's not been created yet.
    */
   @Nullable
+/*
   private TrackOutput getMappedTrackOutput(int id, int type) {
     Assertions.checkArgument(MAPPABLE_TYPES.contains(type));
     int sampleQueueIndex = sampleQueueIndicesByType.get(type, C.INDEX_UNSET);
@@ -860,6 +879,7 @@ import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
         ? sampleQueues[sampleQueueIndex]
         : createDummyTrackOutput(id, type);
   }
+*/
 
   private SampleQueue createSampleQueue(int id, int type) {
     int trackCount = sampleQueues.length;
@@ -876,8 +896,8 @@ import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
     sampleQueueIsAudioVideoFlags[trackCount] =
         type == C.TRACK_TYPE_AUDIO || type == C.TRACK_TYPE_VIDEO;
     haveAudioVideoSampleQueues |= sampleQueueIsAudioVideoFlags[trackCount];
-    sampleQueueMappingDoneByType.add(type);
-    sampleQueueIndicesByType.append(type, trackCount);
+    /*sampleQueueMappingDoneByType.add(type);
+    sampleQueueIndicesByType.append(type, trackCount);*/
     if (getTrackTypeScore(type) > getTrackTypeScore(primarySampleQueueType)) {
       primarySampleQueueIndex = trackCount;
       primarySampleQueueType = type;

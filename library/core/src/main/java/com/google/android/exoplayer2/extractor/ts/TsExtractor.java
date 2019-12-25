@@ -583,18 +583,21 @@ public final class TsExtractor implements Extractor {
         }
         remainingEntriesLength -= esInfoLength + 5;
 
-        int trackId = mode == MODE_HLS ? streamType : elementaryPid;
+//        int trackId = mode == MODE_HLS ? streamType : elementaryPid;
+        int trackId = elementaryPid;
         if (trackIds.get(trackId)) {
           continue;
         }
 
         TsPayloadReader reader = mode == MODE_HLS && streamType == TS_STREAM_TYPE_ID3 ? id3Reader
             : payloadReaderFactory.createPayloadReader(streamType, esInfo);
-        if (mode != MODE_HLS
+        /*if (mode != MODE_HLS
             || elementaryPid < trackIdToPidScratch.get(trackId, MAX_PID_PLUS_ONE)) {
           trackIdToPidScratch.put(trackId, elementaryPid);
           trackIdToReaderScratch.put(trackId, reader);
-        }
+        }*/
+        trackIdToPidScratch.put(trackId, elementaryPid);
+        trackIdToReaderScratch.put(trackId, reader);
       }
 
       int trackIdCount = trackIdToPidScratch.size();
