@@ -112,10 +112,8 @@ import org.checkerframework.checker.nullness.qual.RequiresNonNull;
   public static final int SAMPLE_QUEUE_INDEX_NO_MAPPING_FATAL = -2;
   public static final int SAMPLE_QUEUE_INDEX_NO_MAPPING_NON_FATAL = -3;
 
-  private static final Set<Integer> MAPPABLE_TYPES =
-      Collections.unmodifiableSet(
-          new HashSet<>(
-              Arrays.asList(C.TRACK_TYPE_AUDIO, C.TRACK_TYPE_VIDEO, C.TRACK_TYPE_METADATA)));
+  // Custom fix: https://github.com/google/ExoPlayer/issues/2014
+  private static final Set<Integer> MAPPABLE_TYPES = Collections.emptySet();
 
   private final int trackType;
   private final Callback callback;
